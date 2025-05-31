@@ -10,12 +10,12 @@ library(knitr)
 library(ggplot2)
 library(enrichR)
 
-
+# Setando caminho para o projeto e lendo as basese
 setwd("caminho")
+raw <- read_excel("caminho", col_names = FALSE) # Expressão dos miRNAs nos grupos analisados
+mirtarbase <- read_excel("caminho") # miRNAs de interesse obtidos no miRTarBase
 
-raw <- read_excel("caminho", col_names = FALSE)
-mirtarbase <- read_excel("caminho")
-
+# Tratamento da planilha: remoção de colunas desnecessárias, formatação
 sample_cols <- 3:19
 
 groups <- factor(unlist(raw[2, sample_cols]))
@@ -27,6 +27,7 @@ expr[] <- lapply(expr, as.numeric)
 genes <- unlist(raw[-c(1,2), 1])
 rownames(expr) <- genes
 
+# Função para aplicar o ANOVA
 get_anova <- function(x, grp) {
   m  <- aov(x ~ grp)
   tb <- summary(m)[[1]]
@@ -195,12 +196,14 @@ sig_ODMvsO <- subset(res_ODMvsO, adj.P.Val < 0.05)
 # sig_w_OO <- subset(wilcoxon, pair=="ODM_vs_O" & p.adj < 0.05)
 
 # Gene target de cada miRNA
+# miRNAs significativos por Limma
 mirnas <- c("hsa-miR-6514-5p",
             "hsa-miR-216a-3p",
             "hsa-miR-126-3p",
             "hsa-miR-99b-5p",
             "hsa-miR-656-5p")
 
+# Genes targets de cada miRNA significativo
 mt <- mirtarbase %>%
   filter(miRNA %in% mirnas) %>%
   select(miRNA, `Target Gene`) %>%
@@ -209,11 +212,13 @@ mt <- mirtarbase %>%
 
 write.csv(mt,   "target_genes.csv",   row.names=TRUE)
 
+# Quantidade de targets por miRNAs
 target_list <- mt %>%
   group_by(miRNA) %>%
   summarize(targets = list(`Target Gene`)) %>%
   deframe() %>%
 
+# Interseção entre os miRNAs (miRNAs que tem o mesmo target)
 pairs <- combn(mirnas, 2, simplify = FALSE)
 intersect_df <- lapply(pairs, function(pr) {
   shared <- intersect(target_list[[pr[1]]], target_list[[pr[2]]])
